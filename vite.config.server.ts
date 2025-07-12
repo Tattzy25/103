@@ -1,6 +1,7 @@
 import { defineConfig } from "vite";
 import path from "path";
 
+
 // Server build configuration
 export default defineConfig({
   build: {
@@ -32,6 +33,7 @@ export default defineConfig({
         // External dependencies that should not be bundled
         "express",
         "cors",
+        "multer",
       ],
       output: {
         format: "es",
@@ -49,5 +51,7 @@ export default defineConfig({
   },
   define: {
     "process.env.NODE_ENV": '"production"',
+    "process.env.DATABASE_URL": JSON.stringify(process.env.DATABASE_URL),
+    "process.env.ABLY_API_KEY": JSON.stringify(process.env.ABLY_API_KEY),
   },
 });

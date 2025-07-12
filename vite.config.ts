@@ -1,35 +1,32 @@
-import { defineConfig, Plugin } from "vite";
+import { defineConfig, Plugin, loadEnv } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
-import { createServer } from "./server";
+import app from "./server";
+
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
-  server: {
-    host: "::",
-    port: 8080,
-  },
-  build: {
-    outDir: "dist/spa",
-  },
-  plugins: [react(), expressPlugin()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./client"),
-      "@shared": path.resolve(__dirname, "./shared"),
-    },
-  },
-}));
-
-function expressPlugin(): Plugin {
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
   return {
-    name: "express-plugin",
-    apply: "serve", // Only apply during development (serve mode)
-    configureServer(server) {
-      const app = createServer();
-
-      // Add Express app as middleware to Vite dev server
-      server.middlewares.use(app);
+    plugins: [react()],
+    server: {
+      port: 8080,
+      proxy: {
+        '/api': 'http://localhost:8080',
+      },
+    },
+    build: {
+      outDir: 'dist/client',
+    },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, './client'),
+        '@shared': path.resolve(__dirname, './shared'),
+      },
+    },
+    define: {
+      "process.env.DATABASE_URL": JSON.stringify(env.DATABASE_URL),
+      "process.env.ABLY_API_KEY": JSON.stringify(env.ABLY_API_KEY),
     },
   };
-}
+});
