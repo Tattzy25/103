@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400..900&family=Roboto+Condensed:wght@300;400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -92,6 +94,7 @@
   body {
     @apply bg-black text-foreground;
     font-family:
+      "Orbitron",
       "Inter",
       -apple-system,
       BlinkMacSystemFont,
@@ -150,6 +153,12 @@
     box-shadow:
       0 0 20px rgba(0, 255, 255, 0.5),
       0 0 40px rgba(0, 255, 255, 0.3);
+  }
+
+  .glow-bridgit-green {
+    box-shadow:
+      0 0 20px rgba(36, 232, 185, 0.5),
+      0 0 40px rgba(36, 232, 185, 0.3);
   }
 
   /* Text glow effects */

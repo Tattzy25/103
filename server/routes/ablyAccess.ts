@@ -12,8 +12,8 @@ router.post("/generate-code", async (req, res) => {
       return res.status(400).json({ error: "userId and sessionId are required" });
     }
 
-    const channelCode = nanoid(6);
-    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24h TTL
+    const channelCode = nanoid(6); // Changed from 10 to 6 as per previous instruction
+    const expiresAt = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2h TTL
 
     await storeChannelSession({
       channelCode,

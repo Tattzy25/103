@@ -8,7 +8,7 @@ const router = express.Router();
 // Neon client for serverless Postgres
 const client = process.env.DATABASE_URL ? neon(process.env.DATABASE_URL) : null; // Conditionally initialize Neon client
 
-const CODE_TTL_MS = 10 * 60 * 1000; // codes valid for 10 minutes
+const CODE_TTL_MS = 2 * 60 * 60 * 1000; // codes valid for 2 hours
 
 // Ably API key from environment
 const ABLY_API_KEY = process.env.ABLY_API_KEY;
@@ -31,14 +31,14 @@ function generateUniqueCode() {
 async function createTokenRequest(channelName: string) {
   return ablyREST.auth.createTokenRequest({
     capability: JSON.stringify({ [channelName]: ["subscribe", "publish"] }),
-    ttl: 30 * 60 * 1000 // Token valid 30 minutes
+    ttl: 2 * 60 * 60 * 1000 // Token valid 2 hours
   });
 }
 
 async function createGuestTokenRequest(channelName: string) {
   return ablyREST.auth.createTokenRequest({
     capability: JSON.stringify({ [channelName]: ["subscribe"] }),
-    ttl: 30 * 60 * 1000 // Token valid 30 minutes
+    ttl: 2 * 60 * 60 * 1000 // Token valid 2 hours
   });
 }
 
