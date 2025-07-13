@@ -4,19 +4,23 @@ import { cn } from "@/lib/utils";
 interface HalftoneDotInterfaceProps {
   isListening?: boolean;
   isSpeaking?: boolean;
+  isRecording: boolean;
   onClick?: () => void;
   className?: string;
+  audioVolume: number;
 }
 
 export const HalftoneDotInterface: React.FC<HalftoneDotInterfaceProps> = ({
-  isListening = false,
-  isSpeaking = false,
+  isRecording,
+  isSpeaking,
+  audioVolume,
   onClick,
   className,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animationRef = useRef<number>();
   const [isActive, setIsActive] = useState(false);
+  const timeRef = useRef(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -29,19 +33,13 @@ export const HalftoneDotInterface: React.FC<HalftoneDotInterfaceProps> = ({
     canvas.width = size;
     canvas.height = size;
 
-    // Placeholder for real-time voice analysis data
-    // In a real implementation, this would be updated from a voice processing service
-    const voiceData = {
-      volume: 0.5, // Normalized 0-1
-      tone: 0.5,   // Normalized 0-1
-    };
-
     const draw = () => {
       ctx.clearRect(0, 0, size, size);
+      timeRef.current += 0.02;
 
       const centerX = size / 2;
       const centerY = size / 2;
-      const maxRadius = size / 2 - 15;
+      const maxRadius = size / 2 - 10;
 
       const spacing = 12;
       for (let x = spacing; x < size - spacing; x += spacing) {
@@ -54,35 +52,59 @@ export const HalftoneDotInterface: React.FC<HalftoneDotInterfaceProps> = ({
 
           const normalizedDistance = distance / maxRadius;
           
-          const baseSize = (1 - normalizedDistance) * 3.5;
-          let pulseMultiplier = 1;
-
-          if (isListening || isSpeaking) {
-            // Dynamic pulsing based on (placeholder) voice data
-            const time = Date.now() / 1000;
-            const volumeEffect = 1 + voiceData.volume * 0.5;
-            const toneEffect = Math.sin(time * (3 + voiceData.tone * 4) + distance * 0.1);
-            pulseMultiplier = volumeEffect + toneEffect * 0.1;
-          }
-
-          const dotSize = Math.max(0.5, baseSize * pulseMultiplier);
-
-          // Gradient from Purple (center) to White (edge)
-          const t = normalizedDistance;
-          const r = 147 * (1 - t) + 255 * t; // Purple (R=147) to White (R=255)
-          const g = 112 * (1 - t) + 255 * t; // Purple (G=112) to White (G=255)
-          const b = 219 * (1 - t) + 255 * t; // Purple (B=219) to White (B=255)
-          let alpha = 1 - t * 0.5;
-
-          if (isListening || isSpeaking) {
-            alpha = Math.min(1, alpha * 1.2);
-            ctx.shadowColor = `rgba(147, 112, 219, 0.2)`; // Softer purple glow
-            ctx.shadowBlur = 1; // Smaller glow
+          // Calm breathing animation when idle, dynamic when speaking
+          let pulseIntensity = 1;
+          
+          if (isRecording || isSpeaking) {
+            // Dynamic response to voice - natural speech-like movement
+            const voiceResponse = audioVolume * 1.2; // Direct response to voice volume
+            const speechRhythm = isSpeaking ? Math.sin(timeRef.current * 2.5) * 0.15 + 0.85 : 0;
+            pulseIntensity = 0.95 + voiceResponse + speechRhythm;
           } else {
-            ctx.shadowBlur = 0;
+            // Gentle breathing when idle - very subtle
+            const breathingCycle = Math.sin(timeRef.current * 0.8) * 0.05 + 0.98;
+            pulseIntensity = breathingCycle;
           }
+          
+          // Three-color system: White (largest), Pink/Purple, Turquoise
+          const t = normalizedDistance;
+          
+          // Create alternating pattern based on position
+          const patternX = Math.floor(x / 8) % 3;
+          const patternY = Math.floor(y / 8) % 3;
+          const patternIndex = (patternX + patternY) % 3;
+          
+          let color;
+          let baseSizeMultiplier = 1;
+          let alpha = 0.8;
+          
+          if (patternIndex === 0) {
+            // White dots - largest, 10% opacity
+            color = '#FFFFFF';
+            baseSizeMultiplier = 1.3; // Larger than others
+            alpha = 0.1; // 10% transparency
+          } else if (patternIndex === 1) {
+            // Pink/Purple dots
+            color = '#FF1493'; // Deep pink
+            alpha = 0.8;
+          } else {
+            // Turquoise dots
+            color = '#40E0D0';
+            alpha = 0.8;
+          }
+          
+          const baseSize = (1 - normalizedDistance) * 3.5 * baseSizeMultiplier;
+          const dotSize = Math.max(0.5, baseSize * pulseIntensity);
+          
+          // Apply fade towards edges
+          const finalAlpha = alpha * (1 - t * 0.3);
 
-          ctx.fillStyle = `rgba(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)}, ${alpha})`;
+          // No glow effects - clean dots only
+          ctx.shadowColor = 'transparent';
+          ctx.shadowBlur = 0;
+          ctx.globalAlpha = finalAlpha;
+
+          ctx.fillStyle = color;
           ctx.beginPath();
           ctx.arc(x, y, dotSize, 0, Math.PI * 2);
           ctx.fill();
@@ -90,49 +112,46 @@ export const HalftoneDotInterface: React.FC<HalftoneDotInterfaceProps> = ({
       }
     };
 
-    draw();
+    const animate = () => {
+      draw();
+      animationRef.current = requestAnimationFrame(animate);
+    };
 
-    if (isListening || isSpeaking) {
-      const intervalId = setInterval(draw, 50); // Faster redraw for smoother animation
-      return () => clearInterval(intervalId);
-    }
+    animate();
 
-  }, [isListening, isSpeaking]);
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isRecording, isSpeaking, audioVolume]);
 
   const handleClick = () => {
     setIsActive(true);
-    setTimeout(() => setIsActive(false), 200);
+    setTimeout(() => setIsActive(false), 300);
     onClick?.();
   };
 
   return (
     <div
       className={cn(
-        "relative cursor-pointer transition-transform duration-200",
+        "relative cursor-pointer transition-all duration-300",
         "hover:scale-105 active:scale-95",
         isActive && "scale-95",
         className,
       )}
       onClick={handleClick}
     >
-
-
-      {/* Main canvas container */}
+      {/* Clean container without borders - pure halftone effect */}
       <div className="relative w-[400px] h-[400px] rounded-full overflow-hidden">
-        {/* Canvas for halftone dots */}
+        {/* Canvas for luxury dot pattern */}
         <canvas
           ref={canvasRef}
           className="absolute inset-0 w-full h-full"
-          style={{ imageRendering: "pixelated" }}
+          style={{ imageRendering: "auto" }}
         />
-
-
       </div>
 
-      {/* Interactive feedback */}
-      {(isListening || isSpeaking) && (
-        <div className="absolute inset-0 rounded-full border-2 border-bridgit-purple/50 animate-ping" />
-      )}
     </div>
   );
 };

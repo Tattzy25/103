@@ -13,10 +13,10 @@ const CODE_TTL_MS = 2 * 60 * 60 * 1000; // codes valid for 2 hours
 // Ably API key from environment
 const ABLY_API_KEY = process.env.ABLY_API_KEY;
 if (!ABLY_API_KEY) {
-  throw new Error("Missing ABLY_API_KEY environment variable");
+  console.warn("⚠️  ABLY_API_KEY not set - Ably features will be disabled");
 }
 
-const ablyREST = new Ably.Rest(ABLY_API_KEY);
+const ablyREST = ABLY_API_KEY ? new Ably.Rest(ABLY_API_KEY) : null;
 
 function generateUniqueCode() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // exclude confusing chars
@@ -29,6 +29,9 @@ function generateUniqueCode() {
 }
 
 async function createTokenRequest(channelName: string) {
+  if (!ablyREST) {
+    throw new Error("Ably not configured - ABLY_API_KEY missing");
+  }
   return ablyREST.auth.createTokenRequest({
     capability: JSON.stringify({ [channelName]: ["subscribe", "publish"] }),
     ttl: 2 * 60 * 60 * 1000 // Token valid 2 hours
@@ -36,6 +39,9 @@ async function createTokenRequest(channelName: string) {
 }
 
 async function createGuestTokenRequest(channelName: string) {
+  if (!ablyREST) {
+    throw new Error("Ably not configured - ABLY_API_KEY missing");
+  }
   return ablyREST.auth.createTokenRequest({
     capability: JSON.stringify({ [channelName]: ["subscribe"] }),
     ttl: 2 * 60 * 60 * 1000 // Token valid 2 hours
@@ -110,9 +116,13 @@ router.post('/guest', async (req: Request, res: Response) => {
   }
 });
 
-// Periodic cleanup
-setInterval(() => {
-  deleteExpiredCodes().catch(console.error);
-}, 5 * 60 * 1000);
+// Periodic cleanup - only run if database is available
+if (client) {
+  setInterval(() => {
+    deleteExpiredCodes().catch(console.error);
+  }, 5 * 60 * 1000);
+} else {
+  console.warn("⚠️  Database not configured - periodic cleanup disabled");
+}
 
 export default router;

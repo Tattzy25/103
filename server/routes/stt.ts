@@ -3,36 +3,84 @@ import axios from "axios";
 import fs from "fs";
 import multer from "multer";
 import path from "path";
+import { nanoid } from "nanoid";
+import { enqueueTranslation } from "../messageQueue/enqueueTranslation";
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
-// POST /stt - Accepts audio file, sends to Groq Whisper Large v3 Turbo, returns transcription
+// POST /stt - Accepts audio file, sends to Groq Whisper Large v3 Turbo, enqueues for translation
 router.post("/stt", upload.single("audio"), async (req: Request, res: Response) => {
   try {
     if (!req.file) {
       return res.status(400).json({ error: "No audio file uploaded." });
     }
+
+    const { sessionId, userId, sourceLang = "en", targetLang = "es", mode = "solo" } = req.body;
+    
+    if (!sessionId || !userId) {
+      return res.status(400).json({ error: "sessionId and userId are required." });
+    }
+
     const audioPath = req.file.path;
     const apiKey = process.env.GROQ_STT_GROQ_API_KEY;
+    
+    console.log("STT Route - Environment check:");
+    console.log("- GROQ_STT_GROQ_API_KEY exists:", !!apiKey);
+    console.log("- Request body:", req.body);
+    console.log("- File uploaded:", !!req.file);
+    
     if (!apiKey) {
+      console.error("Missing GROQ_STT_GROQ_API_KEY environment variable");
       return res.status(500).json({ error: "GROQ_STT_GROQ_API_KEY not set in environment." });
     }
-    const audioData = fs.readFileSync(audioPath);
+
+    // Create FormData for Groq STT API
+    const FormData = require('form-data');
+    const formData = new FormData();
+    formData.append('file', fs.createReadStream(audioPath));
+    formData.append('model', 'whisper-large-v3-turbo');
+    formData.append('language', sourceLang);
+    formData.append('response_format', 'json');
+
     const response = await axios.post(
-      "https://api.groq.com/v1/speech-to-text/whisper-large-v3-turbo",
-      audioData,
+      "https://api.groq.com/openai/v1/audio/transcriptions",
+      formData,
       {
         headers: {
           "Authorization": `Bearer ${apiKey}`,
-          "Content-Type": "audio/wav",
+          ...formData.getHeaders(),
         },
-        responseType: "json",
       }
     );
-    fs.unlinkSync(audioPath); // Clean up temp file
-    return res.json({ transcription: response.data.transcription });
+
+    const transcription = response.data.text;
+    
+    // Clean up temp file
+    fs.unlinkSync(audioPath);
+
+    // For solo mode, skip Ably but still use message queue for processing
+    const sttResult = {
+      text: transcription,
+      sessionId,
+      userId,
+      sourceLang,
+      targetLang,
+      mode
+    };
+
+    // Enqueue for translation processing
+    await enqueueTranslation(sttResult);
+
+    return res.json({ 
+      success: true,
+      transcription,
+      sessionId,
+      message: "Audio transcribed and queued for translation processing"
+    });
+
   } catch (error: any) {
+    console.error("STT Error:", error);
     return res.status(500).json({ error: error.message || "STT service failed." });
   }
 });

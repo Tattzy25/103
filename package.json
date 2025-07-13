@@ -13,9 +13,10 @@
   "scripts": {
     "dev": "vite",
     "build": "npm run build:client && npm run build:server",
-    "build:client": "vite build",
-    "build:server": "vite build --config vite.config.server.ts",
-    "start": "node dist/server/node-build.mjs",
+    "build:client": "vite build --outDir dist/client",
+    "build:server": "vite build --outDir dist/server -c vite.config.server.ts",
+    "start": "node dist/server/node-build.js",
+    "deploy": "npm run build:client",
     "test": "vitest --run",
     "format.fix": "prettier --write .",
     "typecheck": "tsc"
@@ -23,10 +24,13 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.0.1",
     "@stackframe/react": "^2.8.19",
+    "@types/multer": "^2.0.0",
     "@upstash/qstash": "^2.8.1",
     "ably": "^2.10.0",
     "axios": "^1.10.0",
     "express": "^4.18.2",
+    "form-data": "^4.0.3",
+    "multer": "^2.0.1",
     "nanoid": "^5.0.7",
     "zod": "^3.23.8"
   },

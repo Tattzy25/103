@@ -13,6 +13,10 @@ type BridgitState =
 interface BridgitInterfaceProps {
   mode?: "solo" | "host" | "join" | "coach";
   onMenuClick?: () => void;
+  onStartRecording: () => void;
+  onStopRecording: () => void;
+  isRecording: boolean;
+  audioVolume: number;
 }
 
 const statusMessages = {
@@ -35,6 +39,10 @@ const dynamicIntros = [
 export const BridgitInterface: React.FC<BridgitInterfaceProps> = ({
   mode = "solo",
   onMenuClick,
+  onStartRecording,
+  onStopRecording,
+  isRecording,
+  audioVolume,
 }) => {
   const [state, setState] = useState<BridgitState>("idle");
   const [currentIntro, setCurrentIntro] = useState("");
@@ -46,21 +54,12 @@ export const BridgitInterface: React.FC<BridgitInterfaceProps> = ({
   };
 
   const handleDotClick = () => {
-    if (state === "idle") {
-      // First tap - show intro and start listening
-      if (isFirstTime) {
-        setCurrentIntro(getRandomIntro());
-        setState("speaking");
-        setIsFirstTime(false);
-
-        // Simulate speaking duration then switch to listening
-        setTimeout(() => {
-          setState("listening");
-        }, 3000);
-      } else {
-        // Subsequent interactions - go straight to listening
-        setState("listening");
-      }
+    if (!isRecording) {
+      onStartRecording();
+      setState("listening");
+    } else {
+      onStopRecording();
+      setState("idle");
     }
   };
 
@@ -68,88 +67,76 @@ export const BridgitInterface: React.FC<BridgitInterfaceProps> = ({
     onMenuClick?.();
   };
 
-  useEffect(() => {
-    // Simulate voice activity detection for demo
-    if (state === "listening") {
-      const timeout = setTimeout(() => {
-        setState("processing");
-        setTimeout(() => {
-          setState("speaking");
-          setTimeout(() => {
-            setState("listening");
-          }, 2000);
-        }, 1500);
-      }, 5000);
-
-      return () => clearTimeout(timeout);
-    }
-  }, [state]);
-
   return (
-    <div className="min-h-screen bg-black flex flex-col items-center justify-center relative overflow-hidden">
-
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center relative overflow-hidden">
+      {/* Luxury background overlay */}
+      <div className="absolute inset-0 luxury-gradient-overlay opacity-30" />
+      <div className="absolute inset-0 luxury-dots opacity-20" />
 
       {/* Header */}
-      <header className="absolute top-0 left-0 w-full flex justify-center items-center p-4 md:p-6 z-20">
-        <img
-          src="https://i.imgur.com/mkTjkcj.png"
-          alt="BRIDGIT-AI Header"
-          className="w-full max-w-md md:max-w-lg h-auto object-contain"
-        />
+      <header className="absolute top-0 left-0 w-full flex justify-center items-center p-6 md:p-8 z-20">
+        <div className="glass-luxury rounded-2xl p-4 shadow-luxury">
+          <img
+            src="https://i.imgur.com/mkTjkcj.png"
+            alt="BRIDGIT-AI Header"
+            className="w-full max-w-md md:max-w-lg h-auto object-contain"
+          />
+        </div>
       </header>
 
-      {/* 3D Menu Button */}
+      {/* Premium Menu Button */}
       <button
         onClick={handleMenuClick}
         className={cn(
           "absolute top-8 right-8 z-20",
-          "w-16 h-16 rounded-xl",
+          "w-16 h-16 rounded-2xl",
           "flex items-center justify-center",
-          "text-2xl font-bold text-white",
-          "transition-all duration-200",
-          "hover:scale-110 hover:glow-purple",
+          "transition-all duration-300",
+          "btn-luxury shadow-luxury",
+          "hover:scale-110 hover:glow-luxury",
           "active:scale-95",
-          "btn-3d animate-float",
+          "animate-elegant-float",
         )}
       >
-        <img src="https://i.imgur.com/GFn6kle.png" alt="Menu" className="w-full h-full object-contain" />
+        <img src="https://i.imgur.com/GFn6kle.png" alt="Menu" className="w-full h-full object-contain opacity-90" />
       </button>
 
       {/* Main Interface */}
-      <div className="flex flex-col items-center justify-center space-y-8 z-10 pt-32 md:pt-48">
-        {/* Central Halftone Dot Interface */}
+      <div className="flex flex-col items-center justify-center space-y-12 z-10 pt-40 md:pt-56 animate-fade-in-up">
+        {/* Central Interface Container */}
         <div className="relative">
           <HalftoneDotInterface
-            isListening={state === "listening"}
+            isListening={isRecording}
             isSpeaking={state === "speaking"}
             onClick={handleDotClick}
             className="mx-auto"
+            audioVolume={audioVolume}
+            isRecording={isRecording}
           />
 
-          {/* Pulse rings for active states */}
+          {/* Elegant pulse rings for active states */}
           {(state === "listening" || state === "speaking") && (
             <>
-              <div className="absolute inset-0 rounded-full border-2 border-bridgit-purple/30 animate-ping" />
+              <div className="absolute inset-0 rounded-full border border-primary/20 animate-luxury-pulse" />
               <div
-                className="absolute inset-0 rounded-full border border-bridgit-blue/20 animate-ping"
-                style={{ animationDelay: "0.5s" }}
+                className="absolute inset-0 rounded-full border border-accent/15 animate-luxury-pulse"
+                style={{ animationDelay: "1s" }}
               />
             </>
           )}
         </div>
 
-        {/* Status Text */}
-        <div className="text-center space-y-4">
+        {/* Status Text Section */}
+        <div className="text-center space-y-6 max-w-2xl mx-auto px-6">
           <p
             className={cn(
-              "text-xl md:text-2xl font-medium tracking-wide transition-all duration-300",
-              state === "listening" &&
-                "text-bridgit-blue text-glow-blue animate-pulse",
-              state === "speaking" && "text-bridgit-purple text-glow-purple",
-              state === "processing" && "text-bridgit-cyan text-glow-cyan",
-              state === "connecting" && "text-bridgit-pink text-glow-pink",
-              state === "error" && "text-red-400 text-glow-pink",
-              state === "idle" && "text-gray-400",
+              "text-2xl md:text-3xl font-luxury-display tracking-wide transition-all duration-500",
+              state === "listening" && "text-primary text-glow-luxury animate-luxury-pulse",
+              state === "speaking" && "text-primary text-glow-luxury",
+              state === "processing" && "text-accent text-glow-gold",
+              state === "connecting" && "text-primary text-glow-luxury",
+              state === "error" && "text-destructive text-glow-luxury",
+              state === "idle" && "text-muted-foreground",
             )}
           >
             {statusMessages[state]}
@@ -157,33 +144,35 @@ export const BridgitInterface: React.FC<BridgitInterfaceProps> = ({
 
           {/* Current intro display */}
           {currentIntro && state === "speaking" && (
-            <div className="max-w-md mx-auto p-4 rounded-lg glass-dark">
-              <p className="text-bridgit-purple text-glow-purple text-lg">
+            <div className="glass-luxury-dark rounded-2xl p-6 shadow-luxury animate-fade-in-up">
+              <p className="text-primary text-glow-luxury text-lg font-luxury">
                 "{currentIntro}"
               </p>
             </div>
           )}
 
-          {/* Mode indicator */}
-          <div className="flex items-center justify-center space-x-2">
+          {/* Premium Mode indicator */}
+          <div className="flex items-center justify-center space-x-3 glass-luxury rounded-full px-6 py-3 shadow-luxury">
             <div
               className={cn(
-                "w-2 h-2 rounded-full",
-                mode === "solo" && "bg-bridgit-purple animate-pulse",
-                mode === "host" && "bg-bridgit-blue animate-pulse",
-                mode === "join" && "bg-bridgit-cyan animate-pulse",
-                mode === "coach" && "bg-bridgit-pink animate-pulse",
+                "w-3 h-3 rounded-full transition-all duration-300",
+                mode === "solo" && "bg-primary shadow-purple animate-luxury-pulse",
+                mode === "host" && "bg-accent shadow-gold animate-luxury-pulse",
+                mode === "join" && "bg-primary shadow-purple animate-luxury-pulse",
+                mode === "coach" && "bg-accent shadow-gold animate-luxury-pulse",
               )}
             />
-            <span className="text-sm uppercase tracking-wider text-gray-400">
+            <span className="text-sm font-brand uppercase tracking-wider text-foreground/80">
               {mode} MODE
             </span>
           </div>
         </div>
       </div>
 
-      {/* Bottom ambient glow */}
-      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-96 h-32 bg-gradient-to-t from-bridgit-purple/20 to-transparent blur-3xl" />
+      {/* Premium ambient effects */}
+      <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-[600px] h-40 bg-gradient-to-t from-primary/10 via-accent/5 to-transparent blur-3xl" />
+      <div className="absolute top-1/2 left-0 w-40 h-[400px] bg-gradient-to-r from-primary/5 to-transparent blur-3xl" />
+      <div className="absolute top-1/2 right-0 w-40 h-[400px] bg-gradient-to-l from-accent/5 to-transparent blur-3xl" />
     </div>
   );
 };

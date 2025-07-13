@@ -1,6 +1,11 @@
 import { Client } from "@upstash/qstash";
 
-const client = new Client({ token: process.env.QSTASH_TOKEN! });
+const QSTASH_TOKEN = process.env.QSTASH_TOKEN;
+if (!QSTASH_TOKEN) {
+  console.warn("⚠️  QSTASH_TOKEN not set - Message queue features will be disabled");
+}
+
+const client = QSTASH_TOKEN ? new Client({ token: QSTASH_TOKEN }) : null;
 
 export interface VoiceIDResult {
   audioUrl: string;
@@ -11,11 +16,19 @@ export interface VoiceIDResult {
   originalText: string;
   translatedText: string;
   processingComplete: boolean;
+  mode?: string;
 }
 
 export async function enqueueAbly(voiceIdResult: VoiceIDResult) {
+  if (!client) {
+    console.warn("⚠️  Message queue not available - Ably publishing disabled");
+    return { success: false, error: "Message queue not configured" };
+  }
+
+  const baseUrl = process.env.VERCEL_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3001';
+  
   return await client.queue({ queueName: "ably-queue" }).enqueueJSON({
-    url: process.env.ABLY_SERVICE_URL!,
+    url: `${baseUrl}/api/callbacks/ably-publish`,
     body: {
       audioUrl: voiceIdResult.audioUrl,
       voiceId: voiceIdResult.voiceId,
@@ -25,11 +38,16 @@ export async function enqueueAbly(voiceIdResult: VoiceIDResult) {
       originalText: voiceIdResult.originalText,
       translatedText: voiceIdResult.translatedText,
       processingComplete: voiceIdResult.processingComplete,
+      mode: voiceIdResult.mode || "host",
+      timestamp: new Date().toISOString(),
     },
     headers: {
-      "Session-Id": voiceIdResult.sessionId,
-      "Channel": `${voiceIdResult.userId}_audio`,
+      "Upstash-Forward-Session-Id": voiceIdResult.sessionId,
+      "Upstash-Forward-User-Id": voiceIdResult.userId,
+      "Upstash-Forward-Channel": `${voiceIdResult.sessionId}_audio`,
+      "Upstash-Forward-Event-Type": "translation_complete",
+      "Upstash-Forward-Mode": voiceIdResult.mode || "host",
     },
-    retries: 2,
+    retries: 3,
   });
 }
