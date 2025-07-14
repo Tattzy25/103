@@ -5,6 +5,7 @@ import multer from "multer";
 import path from "path";
 import { nanoid } from "nanoid";
 import { enqueueTranslation } from "../messageQueue/enqueueTranslation";
+import { uploadAudioToS3 } from "../services/s3UploadService";
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
@@ -55,7 +56,12 @@ router.post("/stt", upload.single("audio"), async (req: Request, res: Response) 
     );
 
     const transcription = response.data.text;
-    
+
+    // Upload the audio file to S3
+    const audioBuffer = fs.readFileSync(audioPath);
+    const audioKey = `stt-audio/${sessionId}-${Date.now()}.webm`; // Assuming webm format from client
+    const audioUrl = await uploadAudioToS3(audioKey, audioBuffer, req.file.mimetype || "audio/webm");
+
     // Clean up temp file
     fs.unlinkSync(audioPath);
 
@@ -70,7 +76,10 @@ router.post("/stt", upload.single("audio"), async (req: Request, res: Response) 
     };
 
     // Enqueue for translation processing
-    await enqueueTranslation(sttResult);
+    await enqueueTranslation({
+      ...sttResult,
+      audioUrl // Pass the S3 URL to the next step
+    });
 
     return res.json({ 
       success: true,

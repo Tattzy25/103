@@ -14,6 +14,7 @@ export interface STTResult {
   sourceLang: string;
   targetLang: string;
   mode?: string;
+  audioUrl?: string; // Add audioUrl as optional
 }
 
 export async function enqueueTranslation(sttResult: STTResult) {
@@ -35,6 +36,7 @@ export async function enqueueTranslation(sttResult: STTResult) {
       sourceLang: sttResult.sourceLang,
       targetLang: sttResult.targetLang,
       mode: sttResult.mode || "solo",
+      audioUrl: sttResult.audioUrl,
       timestamp: new Date().toISOString(),
     },
     headers: {

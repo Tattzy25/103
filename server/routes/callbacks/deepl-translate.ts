@@ -7,7 +7,7 @@ const router = express.Router();
 // POST /callbacks/deepl-translate - Handles translation from message queue
 router.post("/deepl-translate", async (req: Request, res: Response) => {
   try {
-    const { transcription, sessionId, userId, sourceLang, targetLang, mode, timestamp } = req.body;
+    const { transcription, sessionId, userId, sourceLang, targetLang, mode, timestamp, audioUrl } = req.body;
     
     if (!transcription || !sessionId || !userId || !sourceLang || !targetLang) {
       return res.status(400).json({ error: "Missing required fields for translation." });
@@ -47,7 +47,8 @@ router.post("/deepl-translate", async (req: Request, res: Response) => {
       targetLang,
       voiceId,
       originalText: transcription,
-      mode
+      mode,
+      audioUrl: audioUrl // Pass the audioUrl from the previous step
     };
 
     // Enqueue for TTS processing

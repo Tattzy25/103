@@ -14,7 +14,8 @@ export interface TranslationResult {
   targetLang: string;
   voiceId: string;
   originalText: string;
-  mode?: string;
+  mode: "solo" | "host" | "join" | "coach";
+  audioUrl?: string; // Add audioUrl as optional
 }
 
 export async function enqueueTTS(translationResult: TranslationResult) {
@@ -35,6 +36,7 @@ export async function enqueueTTS(translationResult: TranslationResult) {
       voiceId: translationResult.voiceId || "pNInz6obpgDQGcFmaJgB", // Default Adam voice
       originalText: translationResult.originalText,
       mode: translationResult.mode || "solo",
+      audioUrl: translationResult.audioUrl,
       timestamp: new Date().toISOString(),
     },
     headers: {

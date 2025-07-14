@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import { synthesizeWithElevenLabs } from "../../tts/synthesize";
 import { enqueueVoiceID } from "../../messageQueue/enqueueVoiceID";
+import { uploadAudioToS3 } from "../../services/s3UploadService";
 
 const router = express.Router();
 
@@ -14,8 +15,7 @@ router.post("/elevenlabs-synthesize", async (req: Request, res: Response) => {
       targetLang, 
       voiceId, 
       originalText, 
-      mode, 
-      timestamp 
+      mode 
     } = req.body;
     
     if (!translatedText || !sessionId || !userId || !targetLang || !voiceId) {
@@ -29,14 +29,14 @@ router.post("/elevenlabs-synthesize", async (req: Request, res: Response) => {
       text: translatedText,
       voiceId,
       modelId: "eleven_flash_v2_5",
-      language: targetLang.toLowerCase()
+      language: targetLang
     });
 
-    // Convert buffer to base64 for storage/transmission
-    const audioBase64 = Buffer.from(audioBuffer as ArrayBuffer).toString('base64');
+    // Upload audio to S3
+    const audioKey = `tts-audio/${sessionId}-${Date.now()}.mp3`;
+    const audioUrl = await uploadAudioToS3(audioKey, Buffer.from(audioBuffer as ArrayBuffer), "audio/mpeg");
     
-    // For now, we'll create a temporary URL - in production, you'd upload to cloud storage
-    const audioUrl = `data:audio/mpeg;base64,${audioBase64}`;
+
     
     // Calculate approximate duration (rough estimate: 150 words per minute)
     const wordCount = translatedText.split(' ').length;
@@ -45,18 +45,25 @@ router.post("/elevenlabs-synthesize", async (req: Request, res: Response) => {
     // Prepare data for Voice ID queue
     const voiceIdData = {
       audioUrl,
-      audioBase64,
       sessionId,
       userId,
       language: targetLang.toLowerCase(),
-      duration: estimatedDuration,
       originalText,
       translatedText,
-      mode
+      mode,
     };
 
     // Enqueue for Voice ID processing
-    await enqueueVoiceID(voiceIdData);
+    await enqueueVoiceID({
+      audioUrl: voiceIdData.audioUrl,
+      duration: estimatedDuration,
+      sessionId: voiceIdData.sessionId,
+      userId: voiceIdData.userId,
+      originalText: voiceIdData.originalText,
+      translatedText: voiceIdData.translatedText,
+      language: voiceIdData.language,
+      mode: voiceIdData.mode
+    });
 
     console.log(`TTS synthesis completed for session ${sessionId}, queued for Voice ID processing`);
 

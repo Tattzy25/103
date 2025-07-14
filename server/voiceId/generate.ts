@@ -2,7 +2,6 @@ import { nanoid } from "nanoid";
 
 export interface VoiceIDRequest {
   audioUrl: string;
-  audioBase64: string;
   sessionId: string;
   userId: string;
   language: string;
@@ -15,7 +14,7 @@ export interface VoiceIDResponse {
   processingTime?: number;
 }
 
-export async function generateVoiceID({ audioUrl, audioBase64, sessionId, userId, language, duration }: VoiceIDRequest): Promise<VoiceIDResponse> {
+export async function generateVoiceID({ audioUrl, sessionId, userId, language, duration }: VoiceIDRequest): Promise<VoiceIDResponse> {
   const startTime = Date.now();
   
   try {

@@ -199,13 +199,11 @@
     background-position: 0 0, 6px 6px;
   }
 
-  .luxury-gradient-overlay {
-    background: radial-gradient(
-      ellipse at center,
-      rgba(147, 112, 219, 0.4) 0%,
-      rgba(255, 215, 0, 0.2) 50%,
-      transparent 100%
-    );
+  .reusable-card {
+    border-radius: 26px;
+    background: #73ff00;
+    box-shadow:  23px 23px 46px #429100,
+                 -23px -23px 46px #a4ff00;
   }
 
   /* Premium button effects */

@@ -33,6 +33,7 @@ export const RecordingControls: React.FC<RecordingControlsProps> = ({
     return (
       <div className="flex flex-col items-center space-y-4">
         <button
+
           onClick={isRecording ? onStopRecording : onStartRecording}
           disabled={isProcessing}
           className={`

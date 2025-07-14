@@ -22,8 +22,9 @@
     "typecheck": "tsc"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.844.0",
     "@neondatabase/serverless": "^1.0.1",
-    "@stackframe/react": "^2.8.19",
+    "@stackframe/react": "^2.8.20",
     "@types/multer": "^2.0.0",
     "@upstash/qstash": "^2.8.1",
     "ably": "^2.10.0",

@@ -9,14 +9,13 @@ const client = QSTASH_TOKEN ? new Client({ token: QSTASH_TOKEN }) : null;
 
 export interface TTSResult {
   audioUrl: string;
-  audioBase64: string;
+  duration: number;
   sessionId: string;
   userId: string;
   language: string;
-  duration: number;
-  originalText?: string;
-  translatedText?: string;
-  mode?: string;
+  originalText: string;
+  translatedText: string;
+  mode: "solo" | "host" | "join" | "coach";
 }
 
 export async function enqueueVoiceID(ttsResult: TTSResult) {
@@ -31,15 +30,14 @@ export async function enqueueVoiceID(ttsResult: TTSResult) {
     url: `${baseUrl}/api/callbacks/voice-id-generate`,
     body: {
       audioUrl: ttsResult.audioUrl,
-      audioBase64: ttsResult.audioBase64,
       sessionId: ttsResult.sessionId,
       userId: ttsResult.userId,
       language: ttsResult.language,
       duration: ttsResult.duration,
       originalText: ttsResult.originalText,
       translatedText: ttsResult.translatedText,
-      mode: ttsResult.mode || "solo",
-      timestamp: new Date().toISOString(),
+      mode: ttsResult.mode,
+
     },
     headers: {
       "Upstash-Forward-Session-Id": ttsResult.sessionId,

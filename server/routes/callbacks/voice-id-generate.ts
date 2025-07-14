@@ -9,15 +9,14 @@ const router = express.Router();
 router.post("/voice-id-generate", async (req: Request, res: Response) => {
   try {
     const { 
-      audioUrl, 
-      audioBase64, 
-      sessionId, 
-      userId, 
-      language, 
-      duration, 
-      originalText, 
-      translatedText, 
-      mode, 
+      audioUrl,
+      sessionId,
+      userId,
+      language,
+      duration,
+      originalText,
+      translatedText,
+      mode,
       timestamp 
     } = req.body;
     
@@ -30,7 +29,6 @@ router.post("/voice-id-generate", async (req: Request, res: Response) => {
     // Generate Voice ID using the audio
     const voiceIdResult = await generateVoiceID({
       audioUrl,
-      audioBase64,
       sessionId,
       userId,
       language,
